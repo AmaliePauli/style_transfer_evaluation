@@ -86,7 +86,12 @@ link to onedrive file
 Python 3.12 and transformers 4.43.3 for running  
 
 ### cite
-
+@article{pauli2025meta,
+  title={A Meta-Evaluation of Style and Attribute Transfer Metrics},
+  author={Pauli, Amalie Brogaard and Augenstein, Isabelle and Assent, Ira},
+  journal={arXiv preprint arXiv:2502.15022},
+  year={2025}
+}
 
 ### References
 - Remi Mir, Bjarke Felbo, Nick Obradovich, and Iyad
