@@ -34,10 +34,10 @@ class Prompt8B:
     def predict(self,df,column_i:str='input',column_o:str='output'):
         #inputs = list(df[column_i])
         #outputs= list(df[column_o])
-        df.loc[:,'style_to']=df['style_to'].apply(lambda x: 'understandable for layman' if x=='layman' else x)
-        df.loc[:,'style_to']=df['style_to'].apply(lambda x: 'addressed to an expert' if x=='expert' else x)
-        df.loc[:,'style_to']=df['style_to'].apply(lambda x: 'simple' if x=='simplicity' else x)
-        df.loc[:,'style_to']=df['style_to'].apply(lambda x: 'simple' if x=='simplified' else x)
+        df['style_to']=df['style_to'].apply(lambda x: 'understandable for layman' if x=='layman' else x)
+        df['style_to']=df['style_to'].apply(lambda x: 'addressed to an expert' if x=='expert' else x)
+        df['style_to']=df['style_to'].apply(lambda x: 'simple' if x=='simplicity' else x)
+        df['style_to']=df['style_to'].apply(lambda x: 'simple' if x=='simplified' else x)
         
         prompt="Evaluate the following completion of a task where a 'source sentence' has been rewritten to be more {} in the style, denoted 'target sentence', Ideally the context and content in the sentence which does not relate to the style should be preserved. Please evaluate on a Likert scale from 1-5 with 5 being the best: 1) how well the meaning is preserved and 2) how well the the style is changed. Return in JSON format with the keys 'meaning' , 'style'. Given the 'source sentence': {} 'target sentence': {}"
 
@@ -91,14 +91,9 @@ class Prompt8B:
         df['ps-1']=df.apply(lambda x: s1 if x['completeS']==0 else x['ps-1'],axis=1)    
         df['pc-1'] = df['pc-1'].map(float)
         df['ps-1'] = df['ps-1'].map(float)
-        return df #list(df['pc-1']),list(df['ps-1']),[]
+        return list(df['pc-1']),list(df['ps-1']),[]
 
 method=Prompt8B()
 
-data = Mir84()
-df=method.predict(data.df)
-path=os.path.join('prompt_final','pred_{}_{}.csv'.format(method.name,data.name))
-df.to_csv(path, index=False)
 ####
-#output_on_dataset_test_both(method)
-#output_on_dataset_both(method)
+output_on_dataset_test_both(method)
