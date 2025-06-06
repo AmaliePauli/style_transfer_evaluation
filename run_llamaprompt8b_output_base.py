@@ -18,17 +18,31 @@ import datasets
 from datasets import Dataset
 # https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct
 from transformers.pipelines.pt_utils import KeyDataset
+import time
+
 dim='c'
 target='mean'
 samplesize=None
 results_sum=pd.DataFrame()
-
-
+#{'m':4,'s':4}
+tok_num = 20
+method_name='PromptLlama_base_3b_{}tok_final'.format(tok_num)
+file_path = 'times_{}.txt'.format(method_name)
 
 class Prompt8B:
-    def __init__(self,name:str='PromptLlama8b'):
-        model_id = "meta-llama/Llama-3.1-8B-Instruct"
-        self.pipeline = pipeline("text-generation", model=model_id, temperature=1, model_kwargs={"torch_dtype": torch.bfloat16}, device_map="auto")
+    def __init__(self,name:str=method_name): #'PromptLlama8b_temp5_max200'
+        #model_id = "meta-llama/Llama-3.1-8B-Instruct"
+        #model_id = "meta-llama/Llama-3.2-3B-Instruct"
+        self.pipeline = pipeline("text-generation", model=model_id, 
+                                 temperature=1.0, 
+                                 do_sample=False,          # Deterministic (greedy); fastest
+                                 #top_k=0,
+                                 top_p=1.0,                # Full nucleus
+                                 num_return_sequences=1,
+                                 use_cache=True,           # Reuse key/value cache – critical!
+                                 max_new_tokens=tok_num,
+                                 model_kwargs={"torch_dtype": torch.bfloat16}, 
+                                 device_map="auto")
         self.name = name
         
     def predict(self,df,column_i:str='input',column_o:str='output'):
@@ -39,13 +53,13 @@ class Prompt8B:
         df['style_to']=df['style_to'].apply(lambda x: 'simple' if x=='simplicity' else x)
         df['style_to']=df['style_to'].apply(lambda x: 'simple' if x=='simplified' else x)
         
-        prompt="Evaluate the following completion of a task where a 'source sentence' has been rewritten to be more {} in the style, denoted 'target sentence', Ideally the context and content in the sentence which does not relate to the style should be preserved. Please evaluate on a Likert scale from 1-5 with 5 being the best: 1) how well the meaning is preserved and 2) how well the the style is changed. Return in JSON format with the keys 'meaning' , 'style'. Given the 'source sentence': {} 'target sentence': {}"
-
+        prompt="Evaluate the following completion of a task where a 'source sentence' has been rewritten to be more {} in the style, denoted 'target sentence', Ideally the context and content in the sentence which does not relate to the style should be preserved. Please evaluate on a Likert scale from 1-5 with 5 being the best: 1) how well the meaning is preserved and 2) how well the the style is changed. Return only JSON format with the keys 'meaning' , 'style'. Given the 'source sentence': {} 'target sentence': {}"
+        #prompt="Evaluate the following completion of a task where a 'source sentence' has been rewritten to be more {} in the style, denoted 'target sentence', Ideally the context and content in the sentence which does not relate to the style should be preserved. Please evaluate on a Likert scale from 1-5 with 5 being the best: 1) how well the meaning is preserved and 2) how well the the style is changed. Return in JSON format with the keys 'meaning' , 'style'. Given the 'source sentence': {} 'target sentence': {}"
         #messages = [
         #    {"role": "system", "content": "You are good at evaluating style and attribute transfer in text"},
         #    {"role": "user", "content": prompt }]
         
-        df['prompt'] = df.apply(lambda x: prompt.format(x['style_to'],x['style_to'],x[column_i],x[column_o]), axis=1)
+        df['prompt'] = df.apply(lambda x: prompt.format(x['style_to'],x[column_i],x[column_o]), axis=1)
         df['message'] = df['prompt'].apply(lambda x: [{"role": "system", "content": "You are a helpfull assistant"},{"role": "user", "content": x }])
         
         ds = Dataset.from_pandas(df)
@@ -64,15 +78,22 @@ class Prompt8B:
                 else:
                     return True
 
-                return False 
+            return False 
 
         preds = []
-        for out in tqdm(self.pipeline(KeyDataset(ds, "message"),max_new_tokens=50,pad_token_id=self.pipeline.tokenizer.eos_token_id)):
+        t0 = time.time()
+        for out in tqdm(self.pipeline(KeyDataset(ds, "message"),pad_token_id=self.pipeline.tokenizer.eos_token_id)):
             preds.append(out[0]['generated_text'][2]['content'])
+        t1 = time.time()
+        total = t1-t0
+        print(total)
+        print()
+        with open(file_path, 'a') as file:
+            file.write(f"{total}\n")
         #print(preds[0:2])
         #post-processes
         df['outputs'] = preds
-        path=os.path.join('prompt_final','outputs_{}_{}.csv'.format(method.name,data.name))
+        path=os.path.join('prompt_final','outputs_{}_{}.csv'.format(method.name, 'try'))
         df.to_csv(path, index=False)
         df['completeC'] = df.outputs.apply(lambda x: 1 if '"meaning"' in x else 0)
         df['pc-1']=df.apply(lambda x: x['outputs'].split('"meaning":')[1].split("}")[0].replace('"','').split(',')[0] if x['completeC']==1 else np.nan,axis=1)
@@ -96,4 +117,6 @@ class Prompt8B:
 method=Prompt8B()
 
 ####
-output_on_dataset_test_both(method)
+#output_on_dataset_test_both(method)
+#output_on_dataset_both(method)
+

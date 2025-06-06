@@ -1,38 +1,16 @@
-# implemetaion is inspired by https://github.com/JiaQiSJTU/FaithEval-FFLM
-
-import pandas as pd
-import numpy as np
-import os
-from scipy.stats import pearsonr,spearmanr,kendalltau
-from itertools import permutations
-from numpy import random
-import itertools
-from compare import output_on_dataset_both,output_on_dataset_test_both
-from data import *
-import random
 # method sepcific import
 from transformers import PreTrainedTokenizerFast
 from transformers import LlamaTokenizer, LlamaForCausalLM
 import torch
 import torch.nn.functional as F
 import numpy as np
-import time
 
-cuda='cuda'
-dim='c'
-target='mean'
-samplesize=None
-#model_id= "meta-llama/Llama-3.2-3B-Instruct"#
-model_id="meta-llama/Llama-3.1-8B-Instruct"##'meta-llama/Llama-3.2-1B-Instruct' #
-results_sum=pd.DataFrame()
-methodname='Our_lkelihood_8b_final'
-file_path = 'times_{}.txt'.format(methodname)
 
-###################
-class LLMProp:
-    def __init__(self,name:str=methodname): 
-        self.name = name
-        self.model = LlamaForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16).to(cuda)
+model_id="meta-llama/Llama-3.1-8B-Instruct"
+class LogProp:
+    def __init__(self,model_id:str=model_id,cuda: str ='cuda'): 
+        self.cuda = cuda
+        self.model = LlamaForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16).to(self.cuda)
         self.model.bfloat16()
         self.tokenizer = PreTrainedTokenizerFast.from_pretrained(model_id)
         self.model.eval()     
@@ -60,12 +38,12 @@ class LLMProp:
         
         c = np.mean(np.log(np.maximum(np.maximum(first_loss,second_loss),third_loss))) 
 
-        u=np.mean(np.log(second_loss))
+        
    
 
-        return pd.Series([c,s,u])
+        return {'style':s,'content_preservation':c}
     
-    def get_predictions(self,out1,source,style):
+    def predict(self,rewrite,origional_sentence,style):
 
         systemprompt="You can repeat sentences, paraphrase sentences or rewrite sentences to change the style or certain attribute of the text while preserving non-related content and context. Your answers contain just the rewrite."
         
@@ -73,14 +51,14 @@ class LLMProp:
         template = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>{}<|eot_id|><|start_header_id|>user<|end_header_id|>{}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
         
          
-        inputprompt1= 'Paraphrase the following sentence: {}'.format(source)
-        inputprompt2= 'Rewrite the following sentence to be {}: {}'.format(style,source)
-        inputprompt3= 'Repeat the following sentence: {}'.format(source)
+        inputprompt1= 'Paraphrase the following sentence: {}'.format(origional_sentence)
+        inputprompt2= 'Rewrite the following sentence to be {}: {}'.format(style,origional_sentence)
+        inputprompt3= 'Repeat the following sentence: {}'.format(origional_sentence)
         
         inst1=template.format(systemprompt,inputprompt1)
         inst2=template.format(systemprompt,inputprompt2)
         inst3=template.format(systemprompt,inputprompt3)
-        output=out1 +'<|eot_id|>'
+        output=rewrite +'<|eot_id|>'
 
         #tokenize
         inst1_tok=self.tokenizer.tokenize(inst1)
@@ -95,17 +73,17 @@ class LLMProp:
         output_ids = self.tokenizer.convert_tokens_to_ids(output_tok)
         
         # creat inputs
-        input1_ids = torch.tensor([inst1_ids+output_ids]).to(cuda)
+        input1_ids = torch.tensor([inst1_ids+output_ids]).to(self.cuda)
         start1_idx = len(inst1_ids)   
-        attention1_mask = torch.tensor([[1] * len(input1_ids)]).to(cuda)
+        attention1_mask = torch.tensor([[1] * len(input1_ids)]).to(self.cuda)
         
-        input2_ids = torch.tensor([inst2_ids+output_ids]).to(cuda)
+        input2_ids = torch.tensor([inst2_ids+output_ids]).to(self.cuda)
         start2_idx = len(inst2_ids)   
-        attention2_mask = torch.tensor([[1] * len(input2_ids)]).to(cuda)
+        attention2_mask = torch.tensor([[1] * len(input2_ids)]).to(self.cuda)
         
-        input3_ids = torch.tensor([inst3_ids+output_ids]).to(cuda)
+        input3_ids = torch.tensor([inst3_ids+output_ids]).to(self.cuda)
         start3_idx = len(inst3_ids)   
-        attention3_mask = torch.tensor([[1] * len(input3_ids)]).to(cuda)
+        attention3_mask = torch.tensor([[1] * len(input3_ids)]).to(self.cuda)
         
         # get logits
         with torch.no_grad():
@@ -117,32 +95,3 @@ class LLMProp:
         return self.calculate_delta(input1_logits,start1_idx,input1_ids,
                                     input2_logits,start2_idx,input2_ids,
                                    input3_logits,start3_idx,input3_ids)
-                           
-   
-     
-    def predict(self,df,column_i:str='input',column_o:str='output'):
-        df['style_to']=df['style_to'].apply(lambda x: 'understandable for layman' if x=='layman' else x)
-        df['style_to']=df['style_to'].apply(lambda x: 'addressed to an expert' if x=='expert' else x)
-        df['style_to']=df['style_to'].apply(lambda x: 'simplified' if x=='simplicity' else x)
-        t0=time.time()
-        sed=df.apply(lambda x: self.get_predictions(x[column_o],x[column_i],x['style_to']), axis=1 )
-        t1=time.time()
-        total=t1-t0
-        print(total)
-        with open(file_path, 'a') as file:
-            file.write(f"{total}\n")
-        c = list(np.array(sed[0]))
-        s = list(sed[1])
-        u = list(np.array(sed[2]))
-        return c,s,u
-    
-
-
-       
-        
-    
-method=LLMProp()
-#################################
-output_on_dataset_test_both(method)
-output_on_dataset_both(method)
-

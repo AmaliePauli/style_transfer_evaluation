@@ -225,6 +225,33 @@ def output_on_dataset_refmethod(method):
     data.on_reference('Reference')
     save_output(method,data,folder,column_i,column_o)
     
+    data = ScialomD21('reference')
+    save_output(method,data,folder,column_i,column_o)
+    
+def output_on_dataset_ref_inp_sour(method):
+    folder = 'output_final'
+    def save_output(method,data,folder,column_i,column_o):
+        predicts=method.predict(data.df,column_i=column_i, column_o=column_o)
+        dfpred = pd.DataFrame({'pred':predicts})
+        path = 'pred_{}_{}.csv'.format(method_name,data.name)
+        savepath = os.path.join(folder,path)
+        dfpred.to_csv(savepath)
+    
+    data = Syntetisk1()
+    save_output(method,data,folder,column_i,column_o)
+    
+    data = Syntetisk2()
+    save_output(method,data,folder,column_i,column_o)
+       
+    data = Lai3()
+    data.on_reference('Reference')
+    save_output(method,data,folder,column_i,column_o)
+    
+    
+    data = ZeigenB11()
+    data.on_reference('Reference')
+    save_output(method,data,folder,column_i,column_o)
+    
 def output_on_dataset(method):
     folder = 'output_final'
     column_i='input'
