@@ -1,19 +1,22 @@
 # Meta evaluation of style transfer metrics
 
-This GitHub is associated with the paper A Meta-Evaluation of Style and Attribute Transfer Metrics (https://arxiv.org/abs/2502.15022 ).
+This GitHub repository is associated with the paper "A Meta-Evaluation of Style and Attribute Transfer Metrics" (https://arxiv.org/abs/2502.15022).
+### Constructed test set
+The paper presents a "new constructed test set" which can be found under the folder "Data". Or on  hugging face https://huggingface.co/datasets/APauli/style_eval_content_test
+
+The paper presents a "constructed test set" which can evaluate metrics on 'content preservation' under large style shifts. We show that metrics/approaches for evaluating 'content preservation' when performing style transfer **must be conditional on the style shift** - "similarity metrics" do not conceptually fit the task, but have been widely used because there is a bias in the evaluation when evaluating these metrics on dataset with human ratings whihc steems form other system-written output og humanwritten references. 
+
+More details in the paper.
+
+### scrips
 It provide the scripts for running different metrics for "content preservation", and some for evaluating "style streengh". Note different scrip have different installation requirements. 
 
-The script running the **method proposed in the paper using likelihood estimate from an LLM is named "run_our_likelihood.py".**
+The script running the **method proposed in the paper using likelihood estimate from an LLM is named "run_logprob_on_data.py".**
 
 The paper presents benchmark results using previously human-annotated datasets on system output or references. We provide references to obtain this data, which should then be saved in the 'data' folder. 
 
-The paper presents a "constructed test set" which can evaluate metrics on 'content preservation' under large style shifts. We show that metrics/approaches for evaluating 'content preservation' when performing style transfer **must be conditional on the style shift** - "similarity metrics" do not logically fit the task. These metrics often obtain a good correlation to human score on system output, but this data distribution does not test the boundaries of the metrics, e.g. output just happens to be more similar the more content is preserved. 
 
-### Constructed test set
-The paper present a "new constructed test set" which can be found under the folder "Data". Or on  hugging face https://huggingface.co/datasets/APauli/style_eval_content_test
 
-More details in the paper.
-General idea:
  
 
 
