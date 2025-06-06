@@ -17,17 +17,6 @@ from nltk.translate.bleu_score import SmoothingFunction
 import bert_score
 import evaluate
 
-def output_lai(method):
-    folder = 'output'
-    column_i='input'
-    column_o='output'
-
-    data = Lai3()
-    predicts=method.predict(data.df,column_i=column_i, column_o=column_o)
-    dfpred = pd.DataFrame({'pred':predicts})
-    path = 'pred_{}_{}.csv'.format(method.name,data.name)
-    savepath = os.path.join(folder,path)
-    dfpred.to_csv(savepath)
 
 ###################
 class SelfBleu:
