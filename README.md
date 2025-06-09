@@ -1,17 +1,37 @@
 # Meta evaluation of style transfer metrics
 
-This GitHub repository is associated with the paper "A Meta-Evaluation of Style and Attribute Transfer Metrics" (https://arxiv.org/abs/2502.15022).
+This GitHub repository is associated with the paper "Mind the Style Gap: Meta-Evaluation of Style and Attribute Transfer
+Metrics" (https://arxiv.org/abs/2502.15022).
 ### Constructed test set
-The paper presents a "new constructed test set" which can be found under the folder "Data". Or on  hugging face https://huggingface.co/datasets/APauli/style_eval_content_test
+The paper presents a "new constructed test set" which can be found under the folder "Data". Or on  Hugging Face https://huggingface.co/datasets/APauli/style_eval_content_test
 
-The paper presents a "constructed test set" which can evaluate metrics on 'content preservation' under large style shifts. We show that metrics/approaches for evaluating 'content preservation' when performing style transfer **must be conditional on the style shift** - "similarity metrics" do not conceptually fit the task, but have been widely used because there is a bias in the evaluation when evaluating these metrics on dataset with human ratings whihc steems form other system-written output og humanwritten references. 
+The paper presents a "constructed test set" which can evaluate metrics on 'content preservation' under large style shifts. We show that metrics/approaches for evaluating 'content preservation' on style transfer **must be style-aware**. Futher, similarity-based  metrics that do not condition on the style shift are widely used but conceptually unsuitable for the task of style transfer. Prior meta-evaluation studies have deemed similarity-based metrics a good fit; however, this is due to misleading results, which we demonstrate stem from the use of skewed data in the evaluation.
 
 More details in the paper.
 
-### scrips
-It provide the scripts for running different metrics for "content preservation", and some for evaluating "style streengh". Note different scrip have different installation requirements. 
+### LogProp
+In addition, the paper presents a new efficient method, **LogProp**, on evaluating content preservation and style strength in style transfer, which utilises a small-sized LLM, e.g. 3B parameters.  LogProb uses likelihood estimates of the sentences-to-evaluate under different prior contexts. Different "instructions" are part of the context, namely both with and without mentioning the target style. Thereby making the evaluation method style-aware. Details in paper.
 
-The script running the **method proposed in the paper using likelihood estimate from an LLM is named "run_logprob_on_data.py".**
+
+Example of test data:
+``` python
+origional_text ="I don't appreciate your lack of effort."
+rewrite_text1 ="I would like to express my concern regarding the effort being put forth."
+rewrite_text2 = "I would appreciate less effort in this area."
+target_style = 'polite'
+```
+Example of using LogProp: 
+```python
+from LogProp import LogProp
+method = LogProp()
+
+method.predict(rewrite_text1,origional_text,target_style)
+```
+
+### benchmark
+We provide the scripts for running different metrics for "content preservation", and some for evaluating "style strengh". Note that different scripts have different installation requirements. 
+
+The script running the LogProp is named "run_logprob_on_data.py".
 
 The paper presents benchmark results using previously human-annotated datasets on system output or references. We provide references to obtain this data, which should then be saved in the 'data' folder. 
 
@@ -89,12 +109,7 @@ link to onedrive file
 Python 3.12 and transformers 4.43.3 for running  
 
 ### cite
-@article{pauli2025meta,
-  title={A Meta-Evaluation of Style and Attribute Transfer Metrics},
-  author={Pauli, Amalie Brogaard and Augenstein, Isabelle and Assent, Ira},
-  journal={arXiv preprint arXiv:2502.15022},
-  year={2025}
-}
+
 
 ### References
 - Remi Mir, Bjarke Felbo, Nick Obradovich, and Iyad
